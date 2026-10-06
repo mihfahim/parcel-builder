@@ -121,6 +121,27 @@ async function makeCrop(p,pg,rows){
   }catch(e){p.crop=await snap(pg)}
 }
 
+function ed(a,b){const m=a.length,n=b.length;const d=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){let p=d[0];d[0]=i;for(let j=1;j<=n;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=t}}return d[n]}
+// fill in characters the OCR dropped, using the PDF's own text (spaces removed), never shortening a word
+function reconcile(ocr,tl){
+  const T=Array.from(tl.replace(/[\s,.:;()\-]/g,"")),Ts=T.join(""),ch=[];
+  const out=ocr.split(" ").map(tok=>{
+    const m=tok.match(/^([^\u0980-\u09FF]*)([\u0980-\u09FF]+)(.*)$/);if(!m)return tok;
+    const c=Array.from(m[2]);
+    if(c.length<5||Ts.includes(m[2]))return tok;
+    let best=null,bd=3;
+    for(let len=c.length;len<=c.length+2;len++)for(let i=0;i+len<=T.length;i++){
+      const cand=T.slice(i,i+len);
+      if(/[\u09BE-\u09CD\u09D7\u0981-\u0983]/.test(cand[0])||cand[cand.length-1]==="\u09CD")continue;
+      const d=ed(c,cand);
+      if(d<bd||(d===bd&&best&&len>best.length)){bd=d;best=cand}
+    }
+    if(best&&bd<=2){const r=best.join("");ch.push(m[2]+" → "+r);return m[1]+r+m[3]}
+    return tok;
+  });
+  return {text:out.join(" "),ch};
+}
 let W,Wn,Wb;
 async function ocrFix(p,pg,rows){
   try{
@@ -150,7 +171,7 @@ async function ocrFix(p,pg,rows){
       let w=W;
       if(pure){if(!Wb)Wb=await Tesseract.createWorker("ben");w=Wb}
       const ad=await rd(strip(ai,last),w);
-      if(BN.test(ad)){p.addr=ad;const sus=ad.match(/[A-Za-z]{3,}/g);if(pure&&sus)p.suspect=sus}else p.addrFail=true;
+      if(BN.test(ad)){const tl=p.addr,r=reconcile(ad,tl);p.addr=r.text;if(r.ch.length)p.fixed=r.ch;const sus=ad.match(/[A-Za-z]{3,}/g);if(pure&&sus)p.suspect=sus}else p.addrFail=true;
     }
     if(BN.test(p.name)){
       const o=strip(ri,ri,1.4,.7);
@@ -200,6 +221,7 @@ function mark(){
   P.forEach((p,i)=>{
     const add=(k,s)=>p.flags.push([k,s,1]);
     if(p.nameFail) add("b","Name could not be read. Type it from the picture.");
+    if(p.fixed) add("w","Words completed from the PDF text: "+p.fixed.join(", ")+". Check them.");
     if(p.suspect) add("b","Check these words, they look misread: "+p.suspect.join(", "));
     if(p.addrFail) add("b","Address could not be read. The text below may be wrong. Fix it from the picture.");
     if(BN.test(p.name+p.addr)) add("w",p.ocr?"Bangla was read from the label picture by OCR. Check it against the picture.":"Bangla could not be read automatically. The PDF text is wrong. Type it from the picture.");
