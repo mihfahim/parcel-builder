@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2b4f48">
+<title>Pozzo Toys Order desk</title>
+<style>
+:root{--bg:#f1ede6;--card:#f9f6f0;--sub:#f2eee7;--in:#fdfcf8;--line:#e3ddd1;--ink:#1f1d1a;--mut:#7b756b;--grn:#2b4f48;--bd:#e3eee9;--bad:#a8431f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif;padding-bottom:96px}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;margin:0}
+header{display:flex;gap:12px;align-items:center;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+header .lg{width:48px;height:48px;border-radius:14px;background:var(--grn);display:grid;place-items:center}
+header h1{font-size:22px}header small{color:var(--mut);font-size:14px}
+main{max-width:640px;margin:auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.top small{color:var(--mut);font-size:15px}
+.top h2{font-size:30px;margin:2px 0 14px}
+.badge{padding:8px 14px;border-radius:999px;background:var(--bd);color:var(--grn);font-size:14px;white-space:nowrap}
+.badge.bad{background:#f6e4dc;color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(60,50,30,.08)}
+.card h3{font-size:24px;margin-bottom:6px}
+.hint{color:var(--mut);font-size:15px;margin:0 0 12px}
+label{display:block;font-size:15px;margin:12px 0 6px}
+input,textarea{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--in);font:inherit;font-size:17px;color:var(--ink)}
+textarea{resize:vertical;line-height:1.5}
+.row{display:flex;gap:12px}.row>*{flex:1;min-width:0}
+.pr{background:var(--sub);border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:12px}
+.pr .h{display:flex;justify-content:space-between;color:var(--mut);margin-bottom:10px}
+.pr .h button{border:0;background:none;color:var(--ink);font:inherit;font-weight:600}
+.pr .grid{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px;margin-top:6px;align-items:end}
+.pr .grid label{margin:8px 0 6px;color:var(--mut)}
+.sub{padding:14px 0;font-weight:600}
+.btn{display:flex;gap:8px;align-items:center;justify-content:center;width:100%;padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--in);font:inherit;font-size:17px;font-weight:600;color:var(--ink)}
+.btn.p{background:var(--grn);border-color:var(--grn);color:#fff}
+.sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:17px;gap:12px}
+.sum.m{color:var(--mut)}
+.sum input{width:45%;text-align:right}
+.sum.g{border-top:1px solid var(--line);margin-top:6px;padding-top:14px;font-size:20px;font-weight:700}
+.sum.g span:last-child{font-size:30px;font-family:Georgia,serif}
+pre{white-space:pre-wrap;background:#ede6db;border-radius:18px;padding:16px;font:inherit;color:var(--mut);margin:0;line-height:1.6}
+.bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:12px;padding:12px 16px 14px;background:var(--card);border-top:1px solid var(--line)}
+.bar .btn{flex:1}.bar .btn:first-child{flex:.9}.bar .btn.p{flex:1.1}
+.warn{background:#f6ece0;border:1px solid #e8d5b8;border-radius:16px;padding:12px 14px;margin-bottom:12px;font-size:15px;color:#6b4a1b}
+.err{color:var(--bad);font-size:15px;margin:0 0 12px}
+.ok{background:var(--bd);color:var(--grn);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.so{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.so button{border:0;background:none;color:var(--mut);font-size:20px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="12" width="9" height="9" rx="2.5" fill="#f1ede6"/><rect x="13" y="6" width="9" height="15" rx="2.5" fill="#b9cbc4"/></svg></div>
+  <div><h1>Pozzo Toys</h1><small>Order desk</small></div>
+</header>
+<main id="app"></main>
+<div class="bar" id="bar" hidden>
+  <button class="btn" onclick="home()">&larr; Start over</button>
+  <button class="btn p" onclick="saveOrder()">&#10003; Confirm &amp; save</button>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isNaN(n)?0:n};
+const tk=n=>"৳ "+Math.round(n).toLocaleString("en-US");
+const en=s=>s.replace(/[০-৯]/g,d=>"০১২৩৪৫৬৭৮৯".indexOf(d));
+let O=null,flash="";
+let orders=[];
+try{orders=JSON.parse(localStorage.getItem("pz_orders")||"[]")}catch(e){}
+const cfg=()=>{try{return JSON.parse(localStorage.getItem("pz_cfg")||"{}")}catch(e){return{}}};
+const setCfg=c=>{try{localStorage.setItem("pz_cfg",JSON.stringify(c))}catch(e){}};
+async function syncOrder(o){
+  const c=cfg();if(!c.url||!c.key)return "nocfg";
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),45000);
+  try{
+    const body=JSON.stringify({key:c.key,order:{id:o.id,date:o.date,name:o.name,phone:o.phone,address:o.address,items:o.items,sub:o.sub,discount:o.discount,delivery:o.delivery,total:o.total,msgTotal:o.msgTotal}});
+    const r=await fetch(c.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body,signal:ac.signal});
+    const j=await r.json();
+    if(j.ok){o.synced=true;if(j.url){c.last=j.url;setCfg(c)}persist();return "ok"}
+    return j.error||"error";
+  }catch(e){return "no connection"}
+  finally{clearTimeout(t)}
+}
+async function syncAll(){
+  const todo=orders.filter(o=>!o.synced);
+  if(!confirm("Send "+todo.length+" saved order(s) to the Google Sheet?"))return;
+  let ok=0,last="";
+  for(const o of todo){const r=await syncOrder(o);if(r==="ok")ok++;else{last=r;break}}
+  flash=ok+" of "+todo.length+" sent to the Google Sheet."+(last?" Stopped: "+last+".":"");home();
+}
+function saveCfg(){
+  const c=cfg();c.url=$("#cu").value.trim();c.key=$("#ck").value.trim();setCfg(c);
+  flash="Settings saved.";home();
+}
+const persist=()=>{try{localStorage.setItem("pz_orders",JSON.stringify(orders));return true}catch(e){return false}};
+
+/* ---------- reading the message ---------- */
+const CUR="(?:৳|tk\\.?|taka|bdt)";
+function moneyLine(l){
+  let m=l.match(new RegExp("^(\\d[\\d,]*(?:\\.\\d+)?)\\s*"+CUR+"?\\s*(total|cod|cash\\s*on\\s*delivery)\\s*\\.?$","i"));
+  if(m)return {label:m[2],val:num(m[1])};
+  m=l.match(new RegExp("^(.*?)[\\s:=\\-–]*"+CUR+"?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(?:"+CUR+"|\\/-)?\\s*\\.?$","i"));
+  if(m&&m[1].trim())return {label:m[1].trim(),val:num(m[2])};
+  return null;
+}
+const isTotalLine=l=>/^(grand\s*)?total\b/i.test(l)||/^\d[\d,]*\s*(?:tk\.?|taka|৳|bdt)?\s*total\b/i.test(l);
+const LAB="customer\\s*name|customer|name|নাম|phone\\s*number|phone\\s*no\\.?|phone|ph|mobile\\s*no\\.?|mobile|mob|contact\\s*no\\.?|contact|number|nmbr|num|ফোন|মোবাইল|যোগাযোগ|address|addr|ঠিকানা|thana|থানা|upazila|upazilla|উপজেলা|district|জেলা|area";
+const labRe=()=>new RegExp("(?<=^|\\s)(?:"+LAB+")\\s*[:：]","gi");
+const kindOf=s=>{s=s.toLowerCase();return /^(customer|name|নাম)/.test(s)?"n":/^(ph|mob|contact|number|nmbr|num|ফোন|মোবাইল|যোগাযোগ)/.test(s)?"p":"a"};
+const tidy=s=>s.replace(/[;,\s]+$/,"").replace(/(\d)\.$/,"$1").trim();
+
+function parseMsg(raw){
+  const L=raw.replace(/\r/g,"").split("\n").map(l=>l.trim());
+  const oi=L.findIndex(l=>/^order\s*confirm/i.test(l));
+  const start=oi>=0?oi+1:0;
+  let di=L.findIndex((l,i)=>i>=start&&/^(delivery\s*detail\w*|customer\s*detail\w*|address)\s*:?\s*$/i.test(l));
+  let top,cus;
+  if(di>=0){top=L.slice(start,di);cus=L.slice(di+1)}
+  else{
+    let t=-1;L.forEach((l,i)=>{if(i>=start&&isTotalLine(en(l)))t=i});
+    if(t>=0){top=L.slice(start,t+1);cus=L.slice(t+1)}else{top=L.slice(start);cus=[]}
+  }
+  top=top.filter(Boolean);cus=cus.filter(Boolean);
+  const r={raw,items:[],delivery:0,discount:0,msgTotal:null,cod:null,advance:null,unread:[],notes:[]};
+  top.forEach(l0=>{
+    const l=en(l0);
+    if(/^(products?|items?|order)\s*:?$/i.test(l))return;
+    const mm=l.match(/^(.*?)\s*(\d+)\s*[*x×]\s*(\d[\d,]*)\s*(?:=\s*(\d[\d,]*))?\s*(?:tk\.?|taka|৳)?\s*\.?$/i);
+    if(mm&&mm[1].trim()){
+      const qty=parseInt(mm[2],10),unit=num(mm[3]);
+      if(mm[4]&&Math.abs(qty*unit-num(mm[4]))>0.5)r.notes.push(mm[1].trim()+": "+qty+" × "+unit+" is not "+num(mm[4])+". Check it.");
+      r.items.push({name:mm[1].trim().replace(/\s*\d+\s*pcs?\.?$/i,"").trim(),qty,price:unit});return;
+    }
+    const m=moneyLine(l);
+    if(!m){r.unread.push(l0);return}
+    const label=m.label,val=m.val;
+    if(/^delivery/i.test(label))r.delivery=val;
+    else if(/^(grand\s*)?total/i.test(label))r.msgTotal=val;
+    else if(/^(cod|cash\s*on\s*delivery|collect)/i.test(label))r.cod=val;
+    else if(/^discount/i.test(label))r.discount=val;
+    else if(/^(advance|paid)/i.test(label))r.advance=val;
+    else{
+      let name=label,qty=1,q;
+      if(q=name.match(/^(\d+)\s*(?:pcs?|pieces?|x|×)\s+(.+)$/i)){qty=parseInt(q[1],10);name=q[2].trim()}
+      else if(q=name.match(/^(.*?)\s*[x×]\s*(\d+)\s*$/i)){name=q[1].trim();qty=parseInt(q[2],10)||1}
+      r.items.push({name,qty,price:val});
+    }
+  });
+  // price shown as a line total for quantities above 1?
+  if(r.msgTotal!=null&&r.items.some(i=>i.qty>1)){
+    const unit=r.items.reduce((s,i)=>s+i.qty*i.price,0),line=r.items.reduce((s,i)=>s+i.price,0);
+    if(line+r.delivery-r.discount===r.msgTotal&&unit+r.delivery-r.discount!==r.msgTotal){
+      r.items.forEach(i=>{i.price=i.price/i.qty});r.notes.push("Prices in the message were treated as line totals for items with a quantity above 1.");
+    }
+  }
+  if(r.msgTotal===0)r.notes.push("The total in the message is 0. This looks like a prepaid or free order. Check it.");
+  else if(r.msgTotal!=null&&!r.discount){
+    const d=r.items.reduce((s,i)=>s+i.qty*i.price,0)+r.delivery-r.msgTotal;
+    if(d>0){r.discount=d;r.notes.push("A discount of "+tk(d)+" was worked out from the total. Check it.")}
+  }
+  // customer lines: labelled or not, in any order, several labels on one line
+  const phRe=/(?:\+?88)?01[3-9]\d{8}/,strip=p=>p.replace(/^\+?88/,"");
+  let name="",phone="",addr=[];
+  const segs=[];
+  cus.forEach(l0=>{
+    const ms=[...l0.matchAll(labRe())];
+    if(!ms.length){segs.push({k:"",v:l0});return}
+    const pre=l0.slice(0,ms[0].index).trim();if(pre)segs.push({k:"",v:pre});
+    ms.forEach((m,j)=>{const end=j+1<ms.length?ms[j+1].index:l0.length;segs.push({k:kindOf(m[0]),v:l0.slice(m.index+m[0].length,end).trim()})});
+  });
+  segs.forEach(({k,v:l})=>{
+    if(!l)return;
+    const flat=en(l).replace(/[\s\-]/g,""),pm=flat.match(phRe);
+    if(k==="p"||(!k&&pm&&flat.replace(pm[0],"").length<=2)){
+      if(pm&&!phone)phone=strip(pm[0]);
+      else if(pm)r.notes.push("A second phone number was found: "+strip(pm[0]));
+      else r.notes.push("Could not read this as a phone number: "+l);
+      return;
+    }
+    if(k==="n"){name=l;return}
+    if(k==="a"){addr.push(l);return}
+    if(!name)name=l;else addr.push(l);
+  });
+  if(!phone){const f=en(cus.join(" ")).replace(/[\s\-]/g,"").match(phRe);if(f){phone=strip(f[0]);r.notes.push("Phone number was found inside the address text.")}}
+  if(!cus.length)r.notes.push("No customer details found after the order lines.");
+  r.name=name;r.phone=phone;r.address=addr.map(tidy).filter(Boolean).join(", ").replace(/\s{2,}/g," ");
+  return r;
+}
+
+/* ---------- screens ---------- */
+const MON="JFMAMJJASOND";
+function today(){const t=new Date(),p=n=>String(n).padStart(2,"0");return t.getFullYear()+"-"+p(t.getMonth()+1)+"-"+p(t.getDate())}
+function nextId(date){
+  const d=new Date((date||today())+"T00:00:00");
+  const p="PZ"+String(d.getFullYear()).slice(-2)+MON[d.getMonth()]+"-";
+  const n=orders.reduce((m,o)=>{if(o.id&&o.id.startsWith(p)){const x=parseInt(o.id.slice(p.length),10);return isNaN(x)?m:Math.max(m,x)}return m},0)+1;
+  return p+String(n).padStart(3,"0");
+}
+function home(){
+  O=null;$("#bar").hidden=true;
+  const c=cfg(),last=orders.slice(-8).reverse(),pend=orders.filter(o=>!o.synced).length;
+  $("#app").innerHTML=`${flash?`<div class="ok">${esc(flash)}</div>`:""}
+  <div class="top"><div><small>New order</small><h2>Paste the message</h2></div></div>
+  <div class="card"><label for="msg" style="margin-top:0">Order confirmation message</label>
+    <textarea id="msg" rows="12" placeholder="Order Confirmed&#10;Product 500&#10;Delivery Charge 80&#10;Total 580&#10;&#10;Delivery details&#10;Name&#10;01XXXXXXXXX&#10;Address"></textarea>
+    <p id="perr" class="err" style="margin-top:10px"></p>
+    <button class="btn p" onclick="readMsg()">Read message</button></div>
+  <div class="card"><h3>Google Sheet</h3>
+    <p class="hint">${c.url?"Connected. Each saved order is added to that month's sheet in your Google Drive.":"Not connected yet. Orders are saved on this phone only."}</p>
+    ${c.last?`<a class="btn" style="text-decoration:none;margin-bottom:12px" href="${esc(c.last)}" target="_blank" rel="noopener">Open latest month sheet</a>`:""}
+    ${pend&&c.url?`<button class="btn p" style="margin-bottom:12px" onclick="syncAll()">Send ${pend} unsent order${pend>1?"s":""} to the sheet</button>`:""}
+    <details ${c.url?"":"open"}><summary style="font-size:16px;padding:6px 0">Connection settings</summary>
+      <label>Web app link</label><input id="cu" value="${esc(c.url||"")}" placeholder="https://script.google.com/macros/s/.../exec">
+      <label>Secret key</label><input id="ck" type="password" value="${esc(c.key||"")}">
+      <button class="btn" style="margin-top:12px" onclick="saveCfg()">Save settings</button></details></div>
+  <div class="card"><h3>Saved orders (${orders.length})</h3>
+    <p class="hint">Also kept in this browser. Download a backup now and then.</p>
+    ${last.map(o=>`<div class="so"><span><b>${esc(o.id)}</b> · ${esc(o.name)}<br><small style="color:var(--mut)">${esc(o.date)} · ${tk(o.total)} · ${o.synced?"in sheet":"not in sheet"}</small></span><button onclick="delOrder('${esc(o.id)}')" aria-label="Delete">&times;</button></div>`).join("")}
+    ${orders.length?`<button class="btn" style="margin-top:12px" onclick="backup()">Download backup</button>`:""}</div>`;
+  flash="";
+}
+function readMsg(){
+  const t=$("#msg").value.trim();
+  if(!t){$("#perr").textContent="Paste a message first.";return}
+  const r=parseMsg(t);
+  if(!r.items.length){$("#perr").textContent="No products found between \"Order Confirmed\" and \"Delivery details\".";return}
+  O=Object.assign(r,{date:today(),idAuto:true});O.id=nextId(O.date);
+  review();
+}
+function review(){
+  $("#bar").hidden=false;window.scrollTo(0,0);
+  $("#app").innerHTML=`<div class="top"><div><small>Review before saving</small><h2>Check every field</h2></div><span class="badge" id="badge"></span></div>
+  <p id="err" class="err"></p>
+  ${O.notes.length||O.unread.length?`<div class="warn">${O.notes.map(esc).join("<br>")}${O.unread.length?(O.notes.length?"<br>":"")+"Lines not understood: "+O.unread.map(esc).join(" | "):""}</div>`:""}
+  <div class="card"><h3>Order</h3><p class="hint">ID follows PZ + year + month letter + monthly serial, and can be changed.</p>
+    <div class="row"><div><label>Order ID</label><input id="oid" value="${esc(O.id)}" oninput="O.id=this.value.trim();O.idAuto=false"></div>
+    <div><label>Date</label><input type="date" value="${O.date}" oninput="O.date=this.value;if(O.idAuto&&this.value){O.id=nextId(O.date);$('#oid').value=O.id}"></div></div></div>
+  <div class="card"><h3>Customer details</h3>
+    <label>Customer name</label><input value="${esc(O.name)}" oninput="O.name=this.value">
+    <label>Phone number</label><input inputmode="tel" value="${esc(O.phone)}" oninput="O.phone=this.value.trim()">
+    <label>Full delivery address</label><textarea rows="3" id="addr" oninput="O.address=this.value;grow(this)">${esc(O.address)}</textarea></div>
+  <div class="card"><h3>Products</h3><div id="items" style="margin-top:14px"></div>
+    <button class="btn" onclick="addItem()">+ Add product</button></div>
+  <div class="card"><h3>Order summary</h3><p class="hint">Grand total = product subtotal − discount + delivery charge</p>
+    <div class="sum m"><span>Product subtotal</span><span id="st"></span></div>
+    <div class="sum"><span>Discount</span><input inputmode="numeric" value="${O.discount}" oninput="O.discount=num(this.value);calc()"></div>
+    <div class="sum"><span>Delivery charge</span><input inputmode="numeric" value="${O.delivery}" oninput="O.delivery=num(this.value);calc()"></div>
+    <div class="sum g"><span>Grand total</span><span id="gt"></span></div>
+    <div class="sum m"><span>Total from message</span><span id="mt"></span></div>
+    ${O.cod!=null?`<div class="sum m"><span>COD from message</span><span>${tk(O.cod)}</span></div>`:""}
+    ${O.advance!=null?`<div class="sum m"><span>Advance / paid from message</span><span>${tk(O.advance)}</span></div>`:""}</div>
+  <div class="card"><h3 style="margin-bottom:14px">Original message</h3><pre>${esc(O.raw)}</pre></div>`;
+  items();grow($("#addr"));calc();
+}
+function grow(t){t.style.height="auto";t.style.height=(t.scrollHeight+4)+"px"}
+function items(){
+  $("#items").innerHTML=O.items.map((it,i)=>`<div class="pr"><div class="h"><span>Product ${i+1}</span><button onclick="rmItem(${i})">Remove</button></div>
+    <input value="${esc(it.name)}" oninput="O.items[${i}].name=this.value" placeholder="Product name">
+    <div class="grid"><div><label>Qty</label><input inputmode="numeric" value="${it.qty}" oninput="O.items[${i}].qty=num(this.value);calc()"></div>
+    <div><label>Unit price</label><input inputmode="numeric" value="${it.price}" oninput="O.items[${i}].price=num(this.value);calc()"></div>
+    <div><label>Subtotal</label><div class="sub" id="s${i}"></div></div></div></div>`).join("");
+}
+function addItem(){O.items.push({name:"",qty:1,price:0});items();calc()}
+function rmItem(i){O.items.splice(i,1);items();calc()}
+function calc(){
+  O.items.forEach((it,i)=>{const e=$("#s"+i);if(e)e.textContent=tk(it.qty*it.price)});
+  O.sub=O.items.reduce((s,i)=>s+i.qty*i.price,0);
+  O.total=O.sub-O.discount+O.delivery;
+  $("#st").textContent=tk(O.sub);$("#gt").textContent=tk(O.total);
+  $("#mt").textContent=O.msgTotal==null?"not in message":tk(O.msgTotal);
+  const b=$("#badge");
+  if(O.msgTotal==null){b.textContent="No total to check";b.className="badge"}
+  else if(Math.abs(O.total-O.msgTotal)<0.5){b.textContent="Totals match";b.className="badge"}
+  else{b.textContent="Differs by "+tk(Math.abs(O.total-O.msgTotal));b.className="badge bad"}
+}
+async function saveOrder(){
+  const e=$("#err");e.textContent="";
+  const bad=m=>{e.textContent=m;window.scrollTo(0,0)};
+  if(!O.id)return bad("Order ID is empty.");
+  if(orders.some(o=>o.id===O.id))return bad("Order ID "+O.id+" is already saved. Change it.");
+  if(!O.name)return bad("Customer name is empty.");
+  if(!/^01[3-9]\d{8}$/.test(O.phone))return bad("Phone number should be 11 digits starting with 01.");
+  if(!O.address)return bad("Address is empty.");
+  if(!O.items.length||O.items.some(i=>!i.name||i.qty<=0))return bad("Check the products: every item needs a name and a quantity.");
+  const dup=orders.find(o=>o.phone===O.phone&&Math.round(o.total)===Math.round(O.total)&&o.date===O.date);
+  if(dup&&!confirm("This looks like a duplicate of "+dup.id+" (same phone, date and total). Save anyway?"))return;
+  if(O.msgTotal!=null&&Math.abs(O.total-O.msgTotal)>=0.5&&!confirm("The grand total differs from the message total. Save anyway?"))return;
+  const btn=$("#bar .p");btn.disabled=true;btn.textContent="Saving…";
+  const o={id:O.id,date:O.date,name:O.name,phone:O.phone,address:O.address,items:O.items,sub:O.sub,discount:O.discount,delivery:O.delivery,total:O.total,msgTotal:O.msgTotal,cod:O.cod,advance:O.advance,raw:O.raw,synced:false};
+  orders.push(o);
+  if(!persist()){orders.pop();btn.disabled=false;btn.textContent="✓ Confirm & save";return bad("Could not save in this browser.")}
+  const st=await syncOrder(o);
+  flash="Saved "+o.id+" for "+o.name+"."+(st==="ok"?" Added to the Google Sheet.":st==="nocfg"?" Saved on this phone only. The Google Sheet is not connected.":" Saved on this phone, but not added to the Google Sheet ("+st+"). Use the button below to send it later.");
+  home();
+}
+function delOrder(id){if(!confirm("Delete "+id+"?"))return;orders=orders.filter(o=>o.id!==id);persist();home()}
+function backup(){
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(orders,null,1)],{type:"application/json"}));
+  a.download="pozzo-orders-backup.json";document.body.appendChild(a);a.click();a.remove();
+}
+home();
+</script>
+</body>
+</html>
