@@ -47,6 +47,11 @@ main{padding:12px;max-width:640px;margin:auto}
   <div id="list"></div>
   <button class="btn alt" id="clr" onclick="clearAll()" hidden>Clear all</button>
   <div id="msg"></div>
+  <details style="margin-top:14px;font-size:13px"><summary>Share test</summary>
+    <p>Two quick tests to find out why sharing fails. Tap each once and tell me the result shown above.</p>
+    <button class="btn alt" style="margin-bottom:8px" onclick="testShare('txt')">Test A: share a text file</button>
+    <button class="btn alt" onclick="testShare('xlsx')">Test B: share a small Excel file</button>
+  </details>
 </main>
 <div class="bar"><button class="btn" id="shr" onclick="generate('share')" disabled>Share Excel</button><button class="btn alt" id="gen" onclick="generate('download')" disabled>Download</button></div>
 
@@ -243,6 +248,19 @@ function stat(){
 }
 function clearAll(){P=[];pages=0;msg.textContent="";render()}
 
+let testX=null;
+window.addEventListener("load",()=>setTimeout(async()=>{
+  try{const wb=new ExcelJS.Workbook();wb.addWorksheet("Sheet1").addRow(["test"]);
+  testX=new File([await wb.xlsx.writeBuffer()],"test.xlsx",{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}catch(e){}
+},1500));
+async function testShare(k){
+  const f=k==="txt"?new File(["test"],"test.txt",{type:"text/plain"}):testX;
+  msg.style.color="#14202e";
+  if(!f){msg.textContent="Test file not ready. Wait a few seconds and try again.";return}
+  const can=navigator.canShare?navigator.canShare({files:[f]}):false;
+  try{await navigator.share({files:[f]});msg.style.color="#1b6e3c";msg.textContent="Test "+(k==="txt"?"A":"B")+": worked (canShare="+can+")"}
+  catch(e){msg.style.color="#b3261e";msg.textContent="Test "+(k==="txt"?"A":"B")+": "+e.name+" - "+e.message+" (canShare="+can+")"}
+}
 let pending=null;
 const clearPending=()=>{pending=null;shr.textContent="Share Excel"};
 document.addEventListener("input",clearPending);
