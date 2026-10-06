@@ -8,7 +8,7 @@ A phone web app that reads Steadfast courier label PDFs and builds the parcel ta
 2. Tap **Choose label PDF** and select the Steadfast labels.
 3. Check each parcel card against the label picture. Fix any field that is wrong, especially Bangla names and addresses.
 4. Untick parcels you do not want to include. Duplicates and ৳0 COD parcels are flagged.
-5. Tap **Share Excel** to send the file straight from the phone, or **Download** to save it.
+5. Tap **Download Excel**. To share the file, open it from your Downloads or Files app and use that app's share button.
 
 ## Output
 

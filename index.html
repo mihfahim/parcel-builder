@@ -34,7 +34,7 @@ main{padding:12px;max-width:640px;margin:auto}
 .lnk{background:none;border:0;color:var(--navy);text-decoration:underline;font-size:13px;padding:4px 0}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px}
 .bar{display:flex;gap:8px;justify-content:center}
-.bar .btn{max-width:300px;margin:0;flex:1}
+.bar .btn{max-width:616px;margin:0;flex:1}
 #msg{font-size:13px;margin-top:8px;color:var(--ok)}
 </style>
 </head>
@@ -47,13 +47,8 @@ main{padding:12px;max-width:640px;margin:auto}
   <div id="list"></div>
   <button class="btn alt" id="clr" onclick="clearAll()" hidden>Clear all</button>
   <div id="msg"></div>
-  <details style="margin-top:14px;font-size:13px"><summary>Share test</summary>
-    <p>Two quick tests to find out why sharing fails. Tap each once and tell me the result shown above.</p>
-    <button class="btn alt" style="margin-bottom:8px" onclick="testShare('txt')">Test A: share a text file</button>
-    <button class="btn alt" onclick="testShare('xlsx')">Test B: share a small Excel file</button>
-  </details>
 </main>
-<div class="bar"><button class="btn" id="shr" onclick="generate('share')" disabled>Share Excel</button><button class="btn alt" id="gen" onclick="generate('download')" disabled>Download</button></div>
+<div class="bar"><button class="btn" id="gen" onclick="generate()" disabled>Download Excel</button></div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -126,7 +121,7 @@ async function makeCrop(p,pg,rows){
   }catch(e){p.crop=await snap(pg)}
 }
 
-let W,Wn;
+let W,Wn,Wb;
 async function ocrFix(p,pg,rows){
   try{
     const has=(r,re)=>r.items.some(i=>re.test(i.s.trim()));
@@ -151,8 +146,11 @@ async function ocrFix(p,pg,rows){
     if(!W)W=await Tesseract.createWorker("ben+eng");
     const rd=async(o,w)=>((await w.recognize(o)).data.text||"").replace(/\s+/g," ").trim();
     if(BN.test(p.addr)){
-      const ad=await rd(strip(ai,last),W);
-      if(BN.test(ad))p.addr=ad;else p.addrFail=true;
+      const pure=!/[A-Za-z0-9]/.test(p.addr);
+      let w=W;
+      if(pure){if(!Wb)Wb=await Tesseract.createWorker("ben");w=Wb}
+      const ad=await rd(strip(ai,last),w);
+      if(BN.test(ad)){p.addr=ad;const sus=ad.match(/[A-Za-z]{3,}/g);if(pure&&sus)p.suspect=sus}else p.addrFail=true;
     }
     if(BN.test(p.name)){
       const o=strip(ri,ri,1.4,.7);
@@ -202,6 +200,7 @@ function mark(){
   P.forEach((p,i)=>{
     const add=(k,s)=>p.flags.push([k,s,1]);
     if(p.nameFail) add("b","Name could not be read. Type it from the picture.");
+    if(p.suspect) add("b","Check these words, they look misread: "+p.suspect.join(", "));
     if(p.addrFail) add("b","Address could not be read. The text below may be wrong. Fix it from the picture.");
     if(BN.test(p.name+p.addr)) add("w",p.ocr?"Bangla was read from the label picture by OCR. Check it against the picture.":"Bangla could not be read automatically. The PDF text is wrong. Type it from the picture.");
     if(/[…]|\.\.\.$/.test(p.name+p.addr)) add("w","Label text is cut off (…). Complete it from the original order.");
@@ -244,33 +243,11 @@ function stat(){
   const inc=P.filter(p=>p.inc).length;
   const flagged=P.filter(p=>p.flags.length).length;
   sum.innerHTML=P.length?`<b>${pages}</b> label pages read, <b>${P.length}</b> parcels found, <b>${inc}</b> included.${flagged?` <span class="w">${flagged} need a look.</span>`:""}`:"No labels loaded.";
-  gen.disabled=shr.disabled=!inc;
+  gen.disabled=!inc;
 }
 function clearAll(){P=[];pages=0;msg.textContent="";render()}
 
-let testX=null;
-window.addEventListener("load",()=>setTimeout(async()=>{
-  try{const wb=new ExcelJS.Workbook();wb.addWorksheet("Sheet1").addRow(["test"]);
-  testX=new File([await wb.xlsx.writeBuffer()],"test.xlsx",{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}catch(e){}
-},1500));
-async function testShare(k){
-  const f=k==="txt"?new File(["test"],"test.txt",{type:"text/plain"}):testX;
-  msg.style.color="#14202e";
-  if(!f){msg.textContent="Test file not ready. Wait a few seconds and try again.";return}
-  const can=navigator.canShare?navigator.canShare({files:[f]}):false;
-  try{await navigator.share({files:[f]});msg.style.color="#1b6e3c";msg.textContent="Test "+(k==="txt"?"A":"B")+": worked (canShare="+can+")"}
-  catch(e){msg.style.color="#b3261e";msg.textContent="Test "+(k==="txt"?"A":"B")+": "+e.name+" - "+e.message+" (canShare="+can+")"}
-}
-let pending=null;
-const clearPending=()=>{pending=null;shr.textContent="Share Excel"};
-document.addEventListener("input",clearPending);
-document.addEventListener("change",clearPending);
-async function doShare(q){
-  try{await navigator.share({files:q.fl});q.keep();msg.style.color="#1b6e3c";msg.textContent="Shared: "+q.done.join("; ")}
-  catch(e){if(e.name!=="AbortError"){msg.style.color="#b3261e";msg.textContent="Share failed: "+e.message+". Use Download instead."}}
-}
-async function generate(mode){
-  if(mode==="share"&&pending){const q=pending;clearPending();return doShare(q)}
+async function generate(){
   msg.textContent="";
   const inc=P.filter(p=>p.inc);
   const bad=inc.filter(p=>!p.sf||!p.name||!p.phone||p.cod===null||!p.addr);
@@ -303,22 +280,9 @@ async function generate(mode){
     done.push(`${name} (${rows.length} parcels)`);
   }
   const keep=()=>files.forEach(f=>{try{localStorage.setItem("pz_"+f.k,f.serial)}catch(e){}});
-  if(mode==="share"){
-    const fl=files.map(f=>new File([f.blob],f.name,{type:f.blob.type}));
-    if(!navigator.share||!navigator.canShare||!navigator.canShare({files:fl})){
-      msg.style.color="#b3261e";msg.textContent="Sharing files is not supported here. Open the app from an https link in Chrome, or use Generate Excel.";return}
-    const q={fl,done,keep};
-    try{await navigator.share({files:fl});keep();msg.style.color="#1b6e3c";msg.textContent="Shared: "+done.join("; ")}
-    catch(e){
-      if(e.name==="AbortError")return;
-      if(e.name==="NotAllowedError"){pending=q;shr.textContent="Send file";msg.style.color="#14202e";msg.textContent="File is ready. Tap Send file.";return}
-      msg.style.color="#b3261e";msg.textContent="Share failed: "+e.message+". Use Download instead.";
-    }
-    return;
-  }
   files.forEach(f=>{const a=document.createElement("a");a.href=URL.createObjectURL(f.blob);a.download=f.name;document.body.appendChild(a);a.click();a.remove()});
   keep();
-  msg.style.color="#1b6e3c";msg.textContent="Saved: "+done.join("; ");
+  msg.style.color="#1b6e3c";msg.textContent="Saved: "+done.join("; ")+". To share it, open it from your Downloads or Files app.";
 }
 try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
 </script>
