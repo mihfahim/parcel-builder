@@ -243,7 +243,16 @@ function stat(){
 }
 function clearAll(){P=[];pages=0;msg.textContent="";render()}
 
+let pending=null;
+const clearPending=()=>{pending=null;shr.textContent="Share Excel"};
+document.addEventListener("input",clearPending);
+document.addEventListener("change",clearPending);
+async function doShare(q){
+  try{await navigator.share({files:q.fl});q.keep();msg.style.color="#1b6e3c";msg.textContent="Shared: "+q.done.join("; ")}
+  catch(e){if(e.name!=="AbortError"){msg.style.color="#b3261e";msg.textContent="Share failed: "+e.message+". Use Download instead."}}
+}
 async function generate(mode){
+  if(mode==="share"&&pending){const q=pending;clearPending();return doShare(q)}
   msg.textContent="";
   const inc=P.filter(p=>p.inc);
   const bad=inc.filter(p=>!p.sf||!p.name||!p.phone||p.cod===null||!p.addr);
@@ -280,8 +289,13 @@ async function generate(mode){
     const fl=files.map(f=>new File([f.blob],f.name,{type:f.blob.type}));
     if(!navigator.share||!navigator.canShare||!navigator.canShare({files:fl})){
       msg.style.color="#b3261e";msg.textContent="Sharing files is not supported here. Open the app from an https link in Chrome, or use Generate Excel.";return}
-    try{await navigator.share({files:fl,title:"Parcel tag"});keep();msg.style.color="#1b6e3c";msg.textContent="Shared: "+done.join("; ")}
-    catch(e){if(e.name!=="AbortError"){msg.style.color="#b3261e";msg.textContent="Share failed: "+e.message}}
+    const q={fl,done,keep};
+    try{await navigator.share({files:fl});keep();msg.style.color="#1b6e3c";msg.textContent="Shared: "+done.join("; ")}
+    catch(e){
+      if(e.name==="AbortError")return;
+      if(e.name==="NotAllowedError"){pending=q;shr.textContent="Send file";msg.style.color="#14202e";msg.textContent="File is ready. Tap Send file.";return}
+      msg.style.color="#b3261e";msg.textContent="Share failed: "+e.message+". Use Download instead.";
+    }
     return;
   }
   files.forEach(f=>{const a=document.createElement("a");a.href=URL.createObjectURL(f.blob);a.download=f.name;document.body.appendChild(a);a.click();a.remove()});
