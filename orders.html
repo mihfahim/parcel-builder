@@ -314,13 +314,13 @@ function fileDate(){const t=new Date();return String(t.getDate()).padStart(2,"0"
 async function parcelExcel(list){
   if(typeof ExcelJS==="undefined")throw new Error("The Excel library did not load. Check your internet connection and try again.");
   const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("Sheet1");
-  const cols=[["Invoice",16],["Name",24],["Address",50],["Phone",15],["Amount",12],["Note",50],["Lot",8],["Delivery Type",14],["Contact Name",16],["Contact Phone",15]];
+  const cols=[["Invoice",16],["Name",24],["Address",50],["Phone",15],["Amount",12],["Note",50],["Contact Name",16],["Contact Phone",15]];
   ws.columns=cols.map(([h,w])=>({header:h,width:w}));
   ws.getRow(1).font={bold:true};
-  ws.getColumn(4).numFmt="@";ws.getColumn(10).numFmt="@";
+  ws.getColumn(4).numFmt="@";ws.getColumn(8).numFmt="@";
   list.forEach(o=>{
-    const r=ws.addRow([o.id,o.name,o.address,String(o.phone),Number(o.amount),o.note,"","","",o.phone2?String(o.phone2):""]);
-    r.getCell(4).numFmt="@";r.getCell(10).numFmt="@";
+    const r=ws.addRow([o.id,o.name,o.address,String(o.phone),Number(o.amount),o.note,null,o.phone2?String(o.phone2):null]);
+    r.getCell(4).numFmt="@";r.getCell(8).numFmt="@";
   });
   const buf=await wb.xlsx.writeBuffer();
   const a=document.createElement("a");
